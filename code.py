@@ -11,9 +11,10 @@ import matplotlib.pyplot as plt
 def main(argv):
     '''Run the tests'''
     usage = 'Correct usage: \n'
-    usage += '    code.py <input-image> <method>\n';
+    usage += '    python code.py <input-image> <method>\n';
     usage += 'Methods available: \n'
     usage += '    1 - Blob detection \n'
+    usage += '    2 - Harris corner detection \n'
 
 
     # Check arguments (first argument is invoked name of program)
@@ -27,7 +28,9 @@ def main(argv):
 
     # Run the programes with sigmas
     if(methodno == 1):
-                blobDetection(imagepath);
+        blobDetection(imagepath);
+    elif(methodno == 2):
+        harrisCorners(imagepath);
     else:
         print 'Incorrect method number called';
 
@@ -56,6 +59,29 @@ def blobDetection(imagepath):
     # Show keypoints
     cv2.imshow("Keypoints", im_with_keypoints)
     cv2.waitKey(0)
+
+    return 0;
+
+def harrisCorners(imagepath):
+
+    print('Harris corner detection called');
+    # Read the image from file
+    img = cv2.imread(imagepath);
+
+    gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
+
+    gray = np.float32(gray)
+    dst = cv2.cornerHarris(gray,2,3,0.04)
+
+    #result is dilated for marking the corners, not important
+    dst = cv2.dilate(dst,None)
+
+    # Threshold for an optimal value, it may vary depending on the image.
+    img[dst>0.01*dst.max()]=[0,0,255]
+
+    cv2.imshow('dst',img)
+    if cv2.waitKey(0) & 0xff == 27:
+        cv2.destroyAllWindows()
 
     return 0;
 
