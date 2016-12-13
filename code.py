@@ -85,7 +85,8 @@ def harrisCorners(imagepaths):
         dst = cv2.dilate(dst,None);
 
         # Threshold for an optimal value, it may vary depending on the image.
-        img[dst>0.01*dst.max()]=[255,0,0]
+        threshold = 0.003;
+        img[dst>threshold*dst.max()]=[255,0,0]
 
         # Show keypoints side by side (uncomment 2 lines and the last plt.show after for loop)
         # plt.subplot(1,3,i),plt.imshow(img);
@@ -94,7 +95,7 @@ def harrisCorners(imagepaths):
 
         # Show only one image at a time:
         plt.imshow(img);
-        plt.title('Corner detection - '+ imagepath), plt.xticks([]), plt.yticks([]);
+        plt.title('Corner detection - '+ imagepath+', Threshold: ' + repr(threshold)), plt.xticks([]), plt.yticks([]);
         plt.show();
     # plt.show();
 
