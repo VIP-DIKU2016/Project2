@@ -123,7 +123,7 @@ def harrisCorners(imagepaths):
 
     return 0;
 
-def matching(imagepaths, N = 45, k = 2):
+def matching(imagepaths, N = 5, k = 2):
 
     print('Matching called')
 
@@ -164,7 +164,7 @@ def matching(imagepaths, N = 45, k = 2):
         image, keypoints, descriptors = extractDescriptors(imagepath)
 
         # Compute the matches between the descriptors
-        matches = matcher.knnMatch(descriptors, referenceDescriptors, k)
+        matches = matcher.knnMatch(referenceDescriptors, descriptors, k)
 
         goodMatches = []
 
@@ -185,7 +185,7 @@ def matching(imagepaths, N = 45, k = 2):
             # Save the best match
             goodMatches.append(sortedDescriptorMatches[0])
 
-        image = cv2.drawMatches(image, keypoints, referenceImage, referenceKeypoints, goodMatches, np.array([]), flags=2)
+        image = cv2.drawMatches(referenceImage, referenceKeypoints, image, keypoints, goodMatches, np.array([]), flags=2)
 
         plt.title(imagepaths[0] + ' - ' + imagepath),plt.imshow(image),plt.show()
 
