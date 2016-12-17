@@ -185,9 +185,9 @@ def matching(imagepaths, N = 5, ratio = 0.7):
             dissimilarityRatio = sortedDescriptorMatches[0].distance / sortedDescriptorMatches[1].distance
 
             if dissimilarityRatio < ratio:
-                goodMatches.append(sortedDescriptorMatches[0])
+                goodMatches.append([sortedDescriptorMatches[0]])
 
-        image = cv2.drawMatches(referenceImage, referenceKeypoints, image, keypoints, goodMatches, np.array([]), flags=2)
+        image = cv2.drawMatchesKnn(referenceImage, referenceKeypoints, image, keypoints, goodMatches, np.array([]), flags=2)
 
         plt.title(imagepaths[0] + ' - ' + imagepath),plt.imshow(image),plt.show()
 
