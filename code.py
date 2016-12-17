@@ -15,6 +15,7 @@ def main(argv):
     usage += 'Methods available: \n'
     usage += '    1 - Blob detection \n'
     usage += '    2 - Harris corner detection \n'
+    usage += '    3 - Matching\n'
 
 
     # Check arguments (first argument is invoked name of program)
@@ -31,6 +32,8 @@ def main(argv):
         blobDetection(imagepaths);
     elif(methodno == 2):
         harrisCorners(imagepaths);
+    elif(methodno == 3):
+        matching(imagepaths);
     else:
         print 'Incorrect method number called';
   
@@ -100,6 +103,52 @@ def harrisCorners(imagepaths):
     # plt.show();
 
     return 0;
+
+def matching(imagepaths):
+
+    print('Matching called')
+
+    # Set up the detector with default parameters.
+    detector = cv2.SimpleBlobDetector_create()
+
+    # Set up the descriptor
+    # Which one should be use? SIFT has a patch size of 128x128,
+    # and cannot be changed. Which one matches the requirement?
+    # ("For the descriptor you should extract a small square patch, with side length
+    # N, of intensity values centered at the detected point.")
+    descriptor = cv2.xfeatures2d.SIFT_create()
+
+    # Set up the matcher
+    # Is this the correct distance measurement?
+    matcher = cv2.BFMatcher(cv2.NORM_L2, crossCheck=True)
+
+    def extractDescriptors(imagepath):
+        img = cv2.imread(imagepath)
+        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+        # Detect blobs.
+        keypoints = detector.detect(gray)
+
+        # Compute descriptors
+        keypoints, descriptors = descriptor.compute(gray, keypoints)
+
+        return (gray, keypoints, descriptors)
+
+    referenceImage, referenceKeypoints, referenceDescriptors = extractDescriptors(imagepaths[0])
+
+    for imagepath in imagepaths[1:]:
+        image, keypoints, descriptors = extractDescriptors(imagepath)
+
+        # Compute the matches between the descriptors
+        matches = matcher.match(descriptors, referenceDescriptors)
+
+        # Sort them in the order of their distance.
+        matches = sorted(matches, key = lambda x:x.distance)
+
+        image = cv2.drawMatches(image, keypoints, referenceImage, referenceKeypoints, matches, np.array([]), flags=2)
+
+        plt.title(imagepaths[0] + ' - ' + imagepath),plt.imshow(image),plt.show()
+
 
 if __name__ == '__main__':    
     sys.exit(main(sys.argv))
