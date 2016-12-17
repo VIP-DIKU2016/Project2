@@ -123,12 +123,12 @@ def harrisCorners(imagepaths):
 
     return 0;
 
-def matching(imagepaths, N = 5, ratio = 0.7):
+def matching(imagepaths, N = 11, ratio = 0.3):
 
     print('Matching called')
 
     # Set up the detector with default parameters.
-    detector = cv2.SimpleBlobDetector_create()
+    detector = cv2.FastFeatureDetector_create()
 
     # Set up the matcher
     # Is this the correct distance measurement?
@@ -182,10 +182,13 @@ def matching(imagepaths, N = 5, ratio = 0.7):
             #     match z such that x 6= z (thus left-to-right matching and right-to-left
             #     matching must agree).
 
-            dissimilarityRatio = sortedDescriptorMatches[0].distance / sortedDescriptorMatches[1].distance
+            try:
+                dissimilarityRatio = sortedDescriptorMatches[0].distance / sortedDescriptorMatches[1].distance
 
-            if dissimilarityRatio < ratio:
-                goodMatches.append([sortedDescriptorMatches[0]])
+                if dissimilarityRatio < ratio:
+                    goodMatches.append([sortedDescriptorMatches[0]])
+            except:
+                pass
 
         image = cv2.drawMatchesKnn(referenceImage, referenceKeypoints, image, keypoints, goodMatches, np.array([]), flags=2)
 
