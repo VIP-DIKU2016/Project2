@@ -135,6 +135,7 @@ def matching(imagepaths, N = 11, ratio = 0.3):
     matcher = cv2.BFMatcher(cv2.NORM_L2SQR, crossCheck=False)
 
     def extractDescriptors(imagepath):
+        '''Returns the processes image, keypoints and descriptors'''
         img = cv2.imread(imagepath)
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
@@ -164,7 +165,12 @@ def matching(imagepaths, N = 11, ratio = 0.3):
         image, keypoints, descriptors = extractDescriptors(imagepath)
 
         # Compute the matches between the descriptors
+
+        # Not sure we are using the write dissimilarity mesurement
         matches = matcher.knnMatch(referenceDescriptors, descriptors, k=2)
+
+        # This should be the correct one, but it is *so* slow...
+        # matches = [ [cv2.DMatch(idx, refIdx, ((refDescr - descr) ** 2).sum(axis=None)) for idx, descr in enumerate(descriptors)] for refIdx, refDescr in enumerate(referenceDescriptors)]
 
         goodMatches = []
 
@@ -172,23 +178,13 @@ def matching(imagepaths, N = 11, ratio = 0.3):
             # Sort them in the order of their distance.
             sortedDescriptorMatches = sorted(descriptorMatches, key = lambda x:x.distance)
 
-            # TODO
-            # To select a correspondence between a point in image A and points from
-            # image B, you should pick the point pairs with the smallest dissimilarity measure.
-            # However, you may choose not to accept this if:
-            #     The ratio of dissimilarity between the best and the second best match is
-            #     too close to 1 (say above 0.7).
-            #     2. If the best B-image match y to an A-image point x has a best A-image
-            #     match z such that x 6= z (thus left-to-right matching and right-to-left
-            #     matching must agree).
-
             try:
                 dissimilarityRatio = sortedDescriptorMatches[0].distance / sortedDescriptorMatches[1].distance
 
                 if dissimilarityRatio < ratio:
                     goodMatches.append([sortedDescriptorMatches[0]])
             except:
-                pass
+                pass # Division by zero, discard
 
         image = cv2.drawMatchesKnn(referenceImage, referenceKeypoints, image, keypoints, goodMatches, np.array([]), flags=2)
 
