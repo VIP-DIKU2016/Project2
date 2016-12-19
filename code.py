@@ -9,24 +9,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-def getWindow(width, point, image):
-    '''Returns the patch centers around point'''
-    row, col = point
-
-    row = int(row)
-    col = int(col)
-
-    result = []
-
-    for i in range(width):
-        for j in range(width):
-            x = int(row - width/2 + i)
-            y = int(col - width/2 + j)
-
-            result.append(image[x][y])
-            
-    return result
-
 def main(argv):
     '''Run the tests'''
     usage = 'Correct usage: \n'
@@ -55,9 +37,27 @@ def main(argv):
         matching(imagepaths);
     else:
         print 'Incorrect method number called';
-  
+    
     # Return 0 to indicate normal termination
     return 0;
+
+def getWindow(width, point, image):
+    '''Returns the patch centers around point'''
+    row, col = point
+
+    row = int(row)
+    col = int(col)
+
+    result = []
+
+    for i in range(width):
+        for j in range(width):
+            x = int(row - width/2 + i)
+            y = int(col - width/2 + j)
+
+            result.append(image[x][y])
+            
+    return result
 
 def blobDetection(imagepaths):
 
@@ -72,6 +72,7 @@ def blobDetection(imagepaths):
          
         # Detect blobs.
         keypoints = detector.detect(im);
+        print keypoints
          
         # Draw detected blobs as red circles.
         # cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS ensures the size of the circle corresponds to the size of blob
@@ -117,18 +118,19 @@ def harrisCorners(imagepaths):
 
         # Show only one image at a time:
         plt.imshow(img);
+        
         plt.title('Corner detection - '+ imagepath+', Threshold: ' + repr(threshold)), plt.xticks([]), plt.yticks([]);
         plt.show();
     # plt.show();
 
     return 0;
 
-def matching(imagepaths, N = 11, ratio = 0.3):
+def matching(imagepaths, N = 5, ratio = 0.3):
 
     print('Matching called')
 
     # Set up the detector with default parameters.
-    detector = cv2.FastFeatureDetector_create()
+    detector = cv2.FastFeatureDetector_create(40)
 
     # Set up the matcher
     # Is this the correct distance measurement?
@@ -138,23 +140,39 @@ def matching(imagepaths, N = 11, ratio = 0.3):
         '''Returns the processes image, keypoints and descriptors'''
         img = cv2.imread(imagepath)
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-
+        
+        #Comment the part below to see solution using SIFT
         # Detect blobs.
         keypoints = detector.detect(gray)
-        
+#        # Extract keypoints using Harris corner detector
+#        dst = cv2.cornerHarris(gray,2,3,0.04);
+#
+#        #result is dilated for marking the corners, not important
+#        dst = cv2.dilate(dst,None);
+#
+#        # Threshold for an optimal value, it may vary depending on the image.
+#        threshold = 0.003;
+#        keypoints = np.argwhere(dst > threshold * dst.max())
+#        keypoints = [cv2.KeyPoint(x[1], x[0], 1) for x in keypoints]
+#        
         descriptors = []
 
         for kp in keypoints:
             try:
                 # Will throw if the patch extends outside of the image
-                # In this case, discard the descriptors
-                # Should we do something else?
                 w = getWindow(N, kp.pt, gray)
                 descriptors.append(w)
+            # In this case, discard the descriptors
             except:
                 pass
 
         descriptors = np.array(descriptors, dtype=np.float32)
+        
+        # uncomment the part below to see solution using SIFT
+#        orb = cv2.ORB_create()
+#
+#        # find the keypoints and descriptors with SIFT
+#        keypoints, descriptors = orb.detectAndCompute(gray,None)
 
         return (gray, keypoints, descriptors)
 
