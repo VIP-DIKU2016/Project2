@@ -183,7 +183,6 @@ def matching(imagepaths, N = 5, ratio = 0.3):
 
         # Compute the matches between the descriptors
 
-        # Not sure we are using the write dissimilarity mesurement
         matches = matcher.knnMatch(referenceDescriptors, descriptors, k=2)
 
         # matches = [ [cv2.DMatch(idx, refIdx, ((refDescr - descr) ** 2).sum(axis=None)) for idx, descr in enumerate(descriptors)] for refIdx, refDescr in enumerate(referenceDescriptors)]
