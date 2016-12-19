@@ -54,7 +54,6 @@ def getWindow(width, point, image):
         for j in range(width):
             x = int(row - width/2 + i)
             y = int(col - width/2 + j)
-
             result.append(image[x][y])
             
     return result
@@ -133,7 +132,7 @@ def matching(imagepaths, N = 5, ratio = 0.3):
     detector = cv2.FastFeatureDetector_create(40)
 
     # Set up the matcher
-    # Is this the correct distance measurement?
+    # We are using the sum of squared difference as measuring distance which is equivalent to the squared L2-norm
     matcher = cv2.BFMatcher(cv2.NORM_L2SQR, crossCheck=False)
 
     def extractDescriptors(imagepath):
@@ -187,7 +186,6 @@ def matching(imagepaths, N = 5, ratio = 0.3):
         # Not sure we are using the write dissimilarity mesurement
         matches = matcher.knnMatch(referenceDescriptors, descriptors, k=2)
 
-        # This should be the correct one, but it is *so* slow...
         # matches = [ [cv2.DMatch(idx, refIdx, ((refDescr - descr) ** 2).sum(axis=None)) for idx, descr in enumerate(descriptors)] for refIdx, refDescr in enumerate(referenceDescriptors)]
 
         goodMatches = []
