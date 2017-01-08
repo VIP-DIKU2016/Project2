@@ -34,7 +34,7 @@ def main(argv):
     elif(methodno == 2):
         harrisCorners(imagepaths);
     elif(methodno == 3):
-        matching(imagepaths);
+        matching(imagepaths, 7);
     else:
         print 'Incorrect method number called';
     
@@ -47,16 +47,33 @@ def getWindow(width, point, image):
 
     row = int(row)
     col = int(col)
-
     result = []
-
     for i in range(width):
         for j in range(width):
             x = int(row - width/2 + i)
             y = int(col - width/2 + j)
             result.append(image[x][y])
-            
     return result
+  
+def findGoodMatches(matches, ratio=0.3):
+    goodMatches = []
+    for m,n in matches:
+        try:
+            dissimilarityRatio = m.distance / n.distance
+            if dissimilarityRatio < ratio:
+                goodMatches.append(m)
+        except:
+            pass # Division by zero, discard
+    return goodMatches
+
+def findSymmetricMatches(matches1, matches2):
+    symmetricMatches = []
+    for i in range(len(matches1)):
+        for j in range(len(matches2)):
+            if (matches1[i].queryIdx == matches2[j].trainIdx and matches2[j].queryIdx == matches1[i].trainIdx):
+                symmetricMatches.append([matches1[i]])
+                break
+    return symmetricMatches
 
 def blobDetection(imagepaths):
 
@@ -139,22 +156,12 @@ def matching(imagepaths, N = 5, ratio = 0.3):
         img = cv2.imread(imagepath)
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         
-        #Comment the part below to see solution using SIFT
         # Detect blobs.
         keypoints = detector.detect(gray)
-#        # Extract keypoints using Harris corner detector
-#        dst = cv2.cornerHarris(gray,2,3,0.04);
-#
-#        #result is dilated for marking the corners, not important
-#        dst = cv2.dilate(dst,None);
-#
-#        # Threshold for an optimal value, it may vary depending on the image.
-#        threshold = 0.003;
-#        keypoints = np.argwhere(dst > threshold * dst.max())
-#        keypoints = [cv2.KeyPoint(x[1], x[0], 1) for x in keypoints]
 #        
+#        descriptors = []
+#        descriptors = getDescriptors(gray, np.array(keypoints), N)
         descriptors = []
-
         for kp in keypoints:
             try:
                 # Will throw if the patch extends outside of the image
@@ -163,14 +170,12 @@ def matching(imagepaths, N = 5, ratio = 0.3):
             # In this case, discard the descriptors
             except:
                 pass
-
         descriptors = np.array(descriptors, dtype=np.float32)
-        
         # uncomment the part below to see solution using SIFT
-#        orb = cv2.ORB_create()
-#
-#        # find the keypoints and descriptors with SIFT
-#        keypoints, descriptors = orb.detectAndCompute(gray,None)
+#        sift = cv2.xfeatures2d.SIFT_create()
+
+        # find the keypoints and descriptors with SIFT
+#        keypoints, descriptors = sift.detectAndCompute(gray,None)
 
         return (gray, keypoints, descriptors)
 
@@ -181,26 +186,16 @@ def matching(imagepaths, N = 5, ratio = 0.3):
         image, keypoints, descriptors = extractDescriptors(imagepath)
 
         # Compute the matches between the descriptors
-
         matches = matcher.knnMatch(referenceDescriptors, descriptors, k=2)
-
-        # matches = [ [cv2.DMatch(idx, refIdx, ((refDescr - descr) ** 2).sum(axis=None)) for idx, descr in enumerate(descriptors)] for refIdx, refDescr in enumerate(referenceDescriptors)]
-
-        goodMatches = []
-
-        for descriptorMatches in matches:
-            # Sort them in the order of their distance.
-            sortedDescriptorMatches = sorted(descriptorMatches, key = lambda x:x.distance)
-
-            try:
-                dissimilarityRatio = sortedDescriptorMatches[0].distance / sortedDescriptorMatches[1].distance
-
-                if dissimilarityRatio < ratio:
-                    goodMatches.append([sortedDescriptorMatches[0]])
-            except:
-                pass # Division by zero, discard
-
-        image = cv2.drawMatchesKnn(referenceImage, referenceKeypoints, image, keypoints, goodMatches, np.array([]), flags=2)
+        matches2 = matcher.knnMatch(descriptors, referenceDescriptors, k=2)
+        print "MATCHES found: "+str(len(matches))
+        goodMatches = findGoodMatches(matches)
+        print "GOOD MATCHES found: "+str(len(goodMatches))
+        goodMatches2 = findGoodMatches(matches2)
+        betterMatches = findSymmetricMatches(goodMatches, goodMatches2)
+        print "BETTER MATCHES found: "+str(len(betterMatches))
+        
+        image = cv2.drawMatchesKnn(referenceImage, referenceKeypoints, image, keypoints, betterMatches, np.array([]), flags=2)
 
         plt.title(imagepaths[0] + ' - ' + imagepath),plt.imshow(image),plt.show()
 
