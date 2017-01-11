@@ -20,7 +20,7 @@ def main(argv):
 
 
     # Check arguments (first argument is invoked name of program)
-    if len(argv) != 2:
+    if len(argv) < 2:
         print usage;
         return 1;
 
@@ -34,46 +34,15 @@ def main(argv):
     elif(methodno == 2):
         harrisCorners(imagepaths);
     elif(methodno == 3):
-        matching(imagepaths, 7);
+        N = 5
+        if (argv[2]):
+            N = int(argv[2])
+        matching(imagepaths, N);
     else:
         print 'Incorrect method number called';
     
     # Return 0 to indicate normal termination
     return 0;
-
-def getWindow(width, point, image):
-    '''Returns the patch centers around point'''
-    row, col = point
-
-    row = int(row)
-    col = int(col)
-    result = []
-    for i in range(width):
-        for j in range(width):
-            x = int(row - width/2 + i)
-            y = int(col - width/2 + j)
-            result.append(image[x][y])
-    return result
-  
-def findGoodMatches(matches, ratio=0.3):
-    goodMatches = []
-    for m,n in matches:
-        try:
-            dissimilarityRatio = m.distance / n.distance
-            if dissimilarityRatio < ratio:
-                goodMatches.append(m)
-        except:
-            pass # Division by zero, discard
-    return goodMatches
-
-def findSymmetricMatches(matches1, matches2):
-    symmetricMatches = []
-    for i in range(len(matches1)):
-        for j in range(len(matches2)):
-            if (matches1[i].queryIdx == matches2[j].trainIdx and matches2[j].queryIdx == matches1[i].trainIdx):
-                symmetricMatches.append([matches1[i]])
-                break
-    return symmetricMatches
 
 def blobDetection(imagepaths):
 
@@ -140,7 +109,47 @@ def harrisCorners(imagepaths):
 
     return 0;
 
-def matching(imagepaths, N = 5, ratio = 0.3):
+def getWindow(width, point, image):
+    '''Returns the patch centers around point with certain width'''
+    row, col = point
+
+    row = int(row)
+    col = int(col)
+    result = []
+    for i in range(width):
+        for j in range(width):
+            x = int(row - width/2 + i)
+            y = int(col - width/2 + j)
+            result.append(image[x][y])
+    return result
+  
+def findGoodMatches(matches, ratio=0.7, debug=False):
+    goodMatches = []
+    ratioScores = []
+    for m,n in matches:
+        try:
+            dissimilarityRatio = m.distance / n.distance
+            if dissimilarityRatio < ratio:
+                goodMatches.append(m)
+                ratioScores.append(dissimilarityRatio)
+        except:
+            pass # Division by zero, discard
+    if (debug):
+        print "STD: " + str(round(np.std(ratioScores), 4))
+        print "Mean: " + str(round(np.mean(ratioScores), 4))
+    return goodMatches
+
+def findSymmetricMatches(matches1, matches2):
+    '''Perform two-sided symmetric matching so that left-to-right matching and right-to-left matching must agree'''
+    symmetricMatches = []
+    for i in range(len(matches1)):
+        for j in range(len(matches2)):
+            if (matches1[i].queryIdx == matches2[j].trainIdx and matches2[j].queryIdx == matches1[i].trainIdx):
+                symmetricMatches.append([matches1[i]])
+                break
+    return symmetricMatches
+
+def matching(imagepaths, N):
 
     print('Matching called')
 
@@ -150,6 +159,7 @@ def matching(imagepaths, N = 5, ratio = 0.3):
     # Set up the matcher
     # We are using the sum of squared difference as measuring distance which is equivalent to the squared L2-norm
     matcher = cv2.BFMatcher(cv2.NORM_L2SQR, crossCheck=False)
+    report = True
 
     def extractDescriptors(imagepath):
         '''Returns the processes image, keypoints and descriptors'''
@@ -158,9 +168,7 @@ def matching(imagepaths, N = 5, ratio = 0.3):
         
         # Detect blobs.
         keypoints = detector.detect(gray)
-#        
-#        descriptors = []
-#        descriptors = getDescriptors(gray, np.array(keypoints), N)
+
         descriptors = []
         for kp in keypoints:
             try:
@@ -171,11 +179,6 @@ def matching(imagepaths, N = 5, ratio = 0.3):
             except:
                 pass
         descriptors = np.array(descriptors, dtype=np.float32)
-        # uncomment the part below to see solution using SIFT
-#        sift = cv2.xfeatures2d.SIFT_create()
-
-        # find the keypoints and descriptors with SIFT
-#        keypoints, descriptors = sift.detectAndCompute(gray,None)
 
         return (gray, keypoints, descriptors)
 
@@ -189,15 +192,15 @@ def matching(imagepaths, N = 5, ratio = 0.3):
         matches = matcher.knnMatch(referenceDescriptors, descriptors, k=2)
         matches2 = matcher.knnMatch(descriptors, referenceDescriptors, k=2)
         print "MATCHES found: "+str(len(matches))
-        goodMatches = findGoodMatches(matches)
+        goodMatches = findGoodMatches(matches, 0.7, True)
         print "GOOD MATCHES found: "+str(len(goodMatches))
         goodMatches2 = findGoodMatches(matches2)
         betterMatches = findSymmetricMatches(goodMatches, goodMatches2)
-        print "BETTER MATCHES found: "+str(len(betterMatches))
+        print "SYMMETRIC MATCHES found: "+str(len(betterMatches))
         
         image = cv2.drawMatchesKnn(referenceImage, referenceKeypoints, image, keypoints, betterMatches, np.array([]), flags=2)
 
-        plt.title(imagepaths[0] + ' - ' + imagepath),plt.imshow(image),plt.show()
+        plt.title(imagepaths[0] + ' - ' + imagepath+'\n N='+str(N)),plt.imshow(image),plt.show()
 
 
 if __name__ == '__main__':    
